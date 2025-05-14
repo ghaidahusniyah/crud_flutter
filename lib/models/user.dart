@@ -18,5 +18,5 @@ class User {
       email: json['email'],
       role: json['role'] ?? '', // tergantung struktur API kamu
     );
-  }
+  } 
 }
