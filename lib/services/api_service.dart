@@ -3,6 +3,7 @@ import 'dart:convert';
         import 'package:http/http.dart' as http;
         import '../models/materi.dart';
         import '../models/user.dart';
+        import 'auth_service.dart';
 
         class ApiService {
           // URL dasar API. Ganti IP jika menggunakan emulator atau device fisik
@@ -14,12 +15,16 @@ import 'dart:convert';
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'email': email,
-              'password': password,
+              'password': password
             }),
           );
 
           if (response.statusCode == 200) {
             final json = jsonDecode(response.body);
+
+            // Simpan token ke AuthService
+            AuthService().setToken(json['token']);
+
             return User.fromJson(json['user']);
           } else {
             throw Exception('Login failed: ${response.body}');
@@ -47,20 +52,28 @@ import 'dart:convert';
         }
         
           // GET: Mengambil semua data Materi
-          Future<List<Materi>> getMateri() async {
-            try {
-              final response = await http.get(Uri.parse('$_baseUrl/materi'));
+        Future<List<Materi>> getMateri() async {
+          try {
+            final token = AuthService().token;
 
-              if (response.statusCode == 200) {
-                List<dynamic> jsonResponse = json.decode(response.body);
-                return jsonResponse.map((data) => Materi.fromJson(data)).toList();
-              } else {
-                throw Exception('Gagal memuat data materi');
-              }
-            } catch (e) {
-              throw Exception('Error getMateri: $e');
+            final response = await http.get(
+              Uri.parse('$_baseUrl/materi'),
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer $token', // tambahkan token di header
+              },
+            );
+
+            if (response.statusCode == 200) {
+              List<dynamic> jsonResponse = json.decode(response.body);
+              return jsonResponse.map((data) => Materi.fromJson(data)).toList();
+            } else {
+              throw Exception('Gagal memuat data materi');
             }
+          } catch (e) {
+            throw Exception('Error getMateri: $e');
           }
+        }
 
           // POST: Membuat data Materi baru
           Future<void> createMateri({
@@ -69,9 +82,14 @@ import 'dart:convert';
             required String image,
           }) async {
             try {
+              final token = AuthService().token;
+
               final response = await http.post(
                 Uri.parse('$_baseUrl/materi'),
-                headers: {'Content-Type': 'application/json'},
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer $token', // tambahkan token di header
+              },
                 body: jsonEncode({
                   'title': title,
                   'description': description,
@@ -95,9 +113,14 @@ import 'dart:convert';
             required String image,
           }) async {
             try {
+              final token = AuthService().token;
+
               final response = await http.put(
                 Uri.parse('$_baseUrl/materi/$id'),
-                headers: {'Content-Type': 'application/json'},
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer $token', 
+                  },
                 body: jsonEncode({
                   'title': title,
                   'description': description,
@@ -116,9 +139,13 @@ import 'dart:convert';
           // DELETE: Menghapus data Materi
           Future<void> deleteMateri(int id) async {
             try {
+              final token = AuthService().token;
               final response = await http.delete(
                 Uri.parse('$_baseUrl/materi/$id'),
-                headers: {'Content-Type': 'application/json'},
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer $token', 
+                },
               );
 
               if (response.statusCode != 200) {
